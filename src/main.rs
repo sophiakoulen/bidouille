@@ -1,6 +1,70 @@
 use std::env;
 use std::fs;
 
+struct WavFile{
+    filesize: u32,
+    datasize: u32,
+    data_offset: u32,
+    header: Vec<u8>,
+    data: Vec<u8>,
+}
+
+fn parse_file(bytes: Vec<u8>)->Option<WavFile>{
+    if &bytes[0..4] != b"RIFF"
+    {
+        println!("File format not recognized.");
+        return None;
+    }
+    
+    if &bytes[8..12] != b"WAVE"
+    {
+        println!("File format not recognized.");
+        return None;
+    }
+
+    let filesize: &[u8;4] = &bytes[4..8].try_into().unwrap();
+    let filesize = u32::from_le_bytes(*filesize);
+    
+    if &bytes[70..74] != b"data"
+    {
+        println!("File format not recognized.");
+        return None;
+    }
+
+    let header = bytes[12..70].to_vec();
+
+    let datasize: &[u8;4] = &bytes[74..78].try_into().unwrap();
+    let datasize = u32::from_le_bytes(*datasize);
+
+    let data = bytes[78..].to_vec();
+
+    Some(WavFile {filesize, datasize, data_offset: 78, header, data})
+}
+
+fn concat_WavFile(a: &WavFile, b: &WavFile)->Option<WavFile>
+{
+    let filesize = a.filesize + b.datasize;
+    let datasize = a.datasize + b.datasize;
+    let data_offset = a.data_offset;
+
+    let header = a.header.clone();
+    let data = [a.data.to_vec(), b.data.to_vec()].concat();
+
+    Some(WavFile{filesize, datasize, data_offset, header, data})
+}
+
+fn WavFile_to_bytes(file: &WavFile)->Vec<u8>
+{
+    vec![
+        b"RIFF".to_vec(),
+        file.filesize.to_le_bytes().to_vec(),
+        b"WAVE".to_vec(),
+        file.header.to_vec(),
+        b"data".to_vec(),
+        file.data.to_vec(),
+    ].concat()
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -8,37 +72,11 @@ fn main() {
 
     let bytes = fs::read(&filename).unwrap();
 
-    let id1: &[u8;4] = &bytes[0..4].try_into().unwrap();
+    let content = parse_file(bytes).unwrap();
 
-    let file_size: &[u8;4] = &bytes[4..8].try_into().unwrap();
+    let result = concat_WavFile(&content, &content).unwrap();
 
-    let id2: &[u8;4] = &bytes[8..12].try_into().unwrap();
+    let output_bytes = WavFile_to_bytes(&result);
 
-    let header = &bytes[12..74];
-
-    let old_size: &[u8;4] = &bytes[74..78].try_into().unwrap();
-
-    let data = &bytes[78..];
-
-    let old_size = u32::from_le_bytes(*old_size);
-
-    dbg!(&old_size);
-
-    let file_size = u32::from_le_bytes(*file_size);
-
-    dbg!(&file_size);
-
-    let new_file_size: u32 = (file_size + old_size).try_into().unwrap();
-    let new_file_size = new_file_size.to_le_bytes();
-
-    let new_size: u32 = (old_size * 2).try_into().unwrap();
-    let new_size = new_size.to_le_bytes();
-
-    dbg!(&new_size);
-
-    let truc = vec![id1.to_vec(), new_file_size.to_vec(), id2.to_vec(), header.to_vec(), new_size.to_vec(), data.to_vec(), data.to_vec()].concat();
-
-    fs::write("output.wav", &truc).unwrap();
-
-
+    fs::write("output.wav", &output_bytes).unwrap();
 }
