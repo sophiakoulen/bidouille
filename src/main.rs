@@ -4,7 +4,6 @@ use std::fs;
 struct WavFile{
     filesize: u32,
     datasize: u32,
-    data_offset: u32,
     header: Vec<u8>,
     data: Vec<u8>,
 }
@@ -38,19 +37,18 @@ fn parse_file(bytes: Vec<u8>)->Option<WavFile>{
 
     let data = bytes[78..].to_vec();
 
-    Some(WavFile {filesize, datasize, data_offset: 78, header, data})
+    Some(WavFile {filesize, datasize, header, data})
 }
 
 fn concat_WavFile(a: &WavFile, b: &WavFile)->Option<WavFile>
 {
     let filesize = a.filesize + b.datasize;
     let datasize = a.datasize + b.datasize;
-    let data_offset = a.data_offset;
 
     let header = a.header.clone();
     let data = [a.data.to_vec(), b.data.to_vec()].concat();
 
-    Some(WavFile{filesize, datasize, data_offset, header, data})
+    Some(WavFile{filesize, datasize, header, data})
 }
 
 fn WavFile_to_bytes(file: &WavFile)->Vec<u8>
