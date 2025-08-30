@@ -88,12 +88,12 @@ fn open_and_parse_or_exit(filename: &str)->WavFile {
         Ok(bytes) => bytes,
         Err(e) => {
             if e.kind() == ErrorKind::NotFound {
-                println!("Error: could not find input file '{filename}'.");
-                exit(1);
+                eprintln!("Error: could not find input file '{filename}'.");
+                exit(127);
             }
             else if e.kind() == ErrorKind::PermissionDenied {
-                println!("Error: permission denied for input file '{filename}'.");
-                exit(1);
+                eprintln!("Error: permission denied for input file '{filename}'.");
+                exit(126);
             }
             else {
                 panic!("Failed to open input file '{filename}': {e:?}.");
@@ -106,11 +106,11 @@ fn open_and_parse_or_exit(filename: &str)->WavFile {
         Err(e) => {
             match e {
                 ParseError::FileFormat => {
-                    println!("Failed to parse input file '{filename}': file format not recognised.");
+                    eprintln!("Failed to parse input file '{filename}': file format not recognised.");
                     exit(1);
                 }
                 _ => {
-                    println!("Failed to parse input file '{filename}'.");
+                    eprintln!("Failed to parse input file '{filename}'.");
                     exit(1);
                 }
             }
@@ -143,11 +143,11 @@ fn main() {
         Err(e) => {
             match e {
                 OperationError::ResultingFileTooLarge => {
-                    println!("Failed to concatenate the input files because the resulting file would be too large.");
+                    eprintln!("Failed to concatenate the input files because the resulting file would be too large.");
                     exit(1);
                 },
                 _ => {
-                    println!("Failed to concatenate the input files.");
+                    eprintln!("Failed to concatenate the input files.");
                     exit(1);
                 }
             };
